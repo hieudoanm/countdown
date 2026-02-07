@@ -18,7 +18,7 @@ const App: FC<AppProps> = ({ Component, pageProps }) => {
   return (
     <>
       <Head>
-        <title>Start</title>
+        <title>Countdown</title>
       </Head>
       <div className={`${geistSans.className} ${geistMono.className}`}>
         <Component {...pageProps} />
