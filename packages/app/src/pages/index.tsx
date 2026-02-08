@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 
 type TimeLeft = {
+  years: number;
   months: number;
   days: number;
   hours: number;
@@ -16,17 +17,26 @@ const diffParts = (from: Date, to: Date): TimeLeft => {
   const start = new Date(from);
   const end = new Date(to);
 
-  let months =
+  /* -------- Total months -------- */
+
+  let totalMonths =
     (end.getFullYear() - start.getFullYear()) * 12 +
     (end.getMonth() - start.getMonth());
 
   const tempDate = new Date(start);
-  tempDate.setMonth(tempDate.getMonth() + months);
+  tempDate.setMonth(tempDate.getMonth() + totalMonths);
 
   if (tempDate > end) {
-    months -= 1;
+    totalMonths -= 1;
     tempDate.setMonth(tempDate.getMonth() - 1);
   }
+
+  /* -------- Years + months split -------- */
+
+  const years = Math.floor(totalMonths / 12);
+  const months = totalMonths % 12;
+
+  /* -------- Remaining time -------- */
 
   const diff = end.getTime() - tempDate.getTime();
 
@@ -35,15 +45,15 @@ const diffParts = (from: Date, to: Date): TimeLeft => {
   const minutes = Math.floor((diff / (1000 * 60)) % 60);
   const seconds = Math.floor((diff / 1000) % 60);
 
-  return { months, days, hours, minutes, seconds };
+  return { years, months, days, hours, minutes, seconds };
 };
 
 /* ---------------- Helpers ---------------- */
 
 const getParamDate = (key: string, fallback: Date) => {
-  if (typeof window === 'undefined') return fallback;
+  if (globalThis.window === undefined) return fallback;
 
-  const params = new URLSearchParams(window.location.search);
+  const params = new URLSearchParams(globalThis.window.location.search);
   const v = params.get(key);
 
   return v ? new Date(v) : fallback;
@@ -55,10 +65,21 @@ const getInitialEnd = () =>
   getParamDate('end', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
 
 const getInitialTitle = () => {
-  if (typeof window === 'undefined') return 'My Countdown';
+  if (globalThis.window === undefined) return 'My Countdown';
 
-  const params = new URLSearchParams(window.location.search);
+  const params = new URLSearchParams(globalThis.window.location.search);
   return params.get('title') || 'My Countdown';
+};
+
+const calcProgress = (start: Date, end: Date) => {
+  const now = Date.now();
+  const s = start.getTime();
+  const e = end.getTime();
+
+  if (now <= s) return 0;
+  if (now >= e) return 100;
+
+  return ((now - s) / (e - s)) * 100;
 };
 
 /* ---------------- Page ---------------- */
@@ -83,22 +104,27 @@ const HomePage: NextPage = () => {
 
   const [titleInput, setTitleInput] = useState<string>(getInitialTitle);
 
-  const [timeLeft, setTimeLeft] = useState<TimeLeft>(() =>
-    diffParts(new Date(), getInitialEnd())
-  );
+  const [timeLeft, setTimeLeft] = useState<TimeLeft>(() => {
+    const now = new Date();
+    const start = getInitialStart();
+    const end = getInitialEnd();
 
-  const [progress, setProgress] = useState(0);
+    if (now < start) return diffParts(now, start);
+    if (now > end) return diffParts(end, now);
+    return diffParts(now, end);
+  });
+
+  const [progress, setProgress] = useState(
+    calcProgress(getInitialStart(), getInitialEnd())
+  );
 
   /* ---------- Interval ---------- */
 
   useEffect(() => {
     const timer = setInterval(() => {
       const nowDate = new Date();
-      const now = nowDate.getTime();
-      const s = start.getTime();
-      const e = end.getTime();
 
-      /* -------- Mode + countdown -------- */
+      /* -------- Countdown -------- */
 
       if (nowDate < start) {
         setTimeLeft(diffParts(nowDate, start));
@@ -110,13 +136,7 @@ const HomePage: NextPage = () => {
 
       /* -------- Progress -------- */
 
-      let p = 0;
-
-      if (now <= s) p = 0;
-      else if (now >= e) p = 100;
-      else p = ((now - s) / (e - s)) * 100;
-
-      setProgress(p);
+      setProgress(calcProgress(start, end));
     }, 1000);
 
     return () => clearInterval(timer);
@@ -159,7 +179,7 @@ const HomePage: NextPage = () => {
   /* ---------- Share ---------- */
 
   const handleShare = async () => {
-    const url = new URL(window.location.href);
+    const url = new URL(globalThis.window.location.href);
 
     url.searchParams.set('start', startInput);
     url.searchParams.set('end', endInput);
@@ -181,6 +201,8 @@ const HomePage: NextPage = () => {
 
   /* ---------- Render ---------- */
 
+  console.log(progress);
+
   return (
     <div className="flex min-h-screen w-screen flex-col items-center justify-center gap-8 p-4">
       {/* Title */}
@@ -193,8 +215,9 @@ const HomePage: NextPage = () => {
       {/* Countdown */}
       <div
         onClick={openModal}
-        className="grid cursor-pointer grid-cols-2 gap-4 text-center sm:grid-cols-3 md:grid-cols-5">
+        className="grid cursor-pointer grid-cols-2 gap-4 text-center sm:grid-cols-3 lg:grid-cols-6">
         {[
+          ['years', timeLeft.years],
           ['months', timeLeft.months],
           ['days', timeLeft.days],
           ['hours', timeLeft.hours],
@@ -237,8 +260,11 @@ const HomePage: NextPage = () => {
 
           {/* Title */}
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold">Title</label>
+            <label htmlFor="title" className="text-sm font-semibold">
+              Title
+            </label>
             <input
+              id="title"
               type="text"
               className="input input-bordered w-full"
               value={titleInput}
@@ -248,8 +274,11 @@ const HomePage: NextPage = () => {
 
           {/* Start date */}
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold">Start Date</label>
+            <label htmlFor="start-date" className="text-sm font-semibold">
+              Start Date
+            </label>
             <input
+              id="start-date"
               type="date"
               className="input input-bordered w-full"
               value={startInput}
@@ -259,8 +288,11 @@ const HomePage: NextPage = () => {
 
           {/* End date */}
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold">End Date</label>
+            <label htmlFor="end-date" className="text-sm font-semibold">
+              End Date
+            </label>
             <input
+              id="end-date"
               type="date"
               className="input input-bordered w-full"
               value={endInput}
