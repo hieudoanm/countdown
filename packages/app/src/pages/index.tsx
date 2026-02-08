@@ -10,6 +10,8 @@ type TimeLeft = {
   seconds: number;
 };
 
+/* ---------------- Date diff ---------------- */
+
 const diffParts = (from: Date, to: Date): TimeLeft => {
   const start = new Date(from);
   const end = new Date(to);
@@ -38,16 +40,19 @@ const diffParts = (from: Date, to: Date): TimeLeft => {
 
 /* ---------------- Helpers ---------------- */
 
-const getInitialDate = () => {
-  if (typeof window === 'undefined') {
-    return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  }
+const getParamDate = (key: string, fallback: Date) => {
+  if (typeof window === 'undefined') return fallback;
 
   const params = new URLSearchParams(window.location.search);
-  const d = params.get('date');
+  const v = params.get(key);
 
-  return d ? new Date(d) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  return v ? new Date(v) : fallback;
 };
+
+const getInitialStart = () => getParamDate('start', new Date());
+
+const getInitialEnd = () =>
+  getParamDate('end', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
 
 const getInitialTitle = () => {
   if (typeof window === 'undefined') return 'My Countdown';
@@ -61,43 +66,63 @@ const getInitialTitle = () => {
 const HomePage: NextPage = () => {
   const router = useRouter();
 
-  /* ---------- State (initialized from params) ---------- */
+  /* ---------- State ---------- */
 
-  const [target, setTarget] = useState<Date>(getInitialDate);
+  const [start, setStart] = useState<Date>(getInitialStart);
+  const [end, setEnd] = useState<Date>(getInitialEnd);
 
   const [title, setTitle] = useState<string>(getInitialTitle);
 
-  const [inputValue, setInputValue] = useState<string>(() =>
-    getInitialDate().toISOString().slice(0, 10)
+  const [startInput, setStartInput] = useState<string>(() =>
+    getInitialStart().toISOString().slice(0, 10)
+  );
+
+  const [endInput, setEndInput] = useState<string>(() =>
+    getInitialEnd().toISOString().slice(0, 10)
   );
 
   const [titleInput, setTitleInput] = useState<string>(getInitialTitle);
 
   const [timeLeft, setTimeLeft] = useState<TimeLeft>(() =>
-    diffParts(new Date(), getInitialDate())
+    diffParts(new Date(), getInitialEnd())
   );
 
-  const [isPast, setIsPast] = useState(false);
+  const [progress, setProgress] = useState(0);
 
-  /* ---------- Countdown interval ---------- */
+  /* ---------- Interval ---------- */
 
   useEffect(() => {
     const timer = setInterval(() => {
-      const now = new Date();
+      const nowDate = new Date();
+      const now = nowDate.getTime();
+      const s = start.getTime();
+      const e = end.getTime();
 
-      if (target <= now) {
-        setIsPast(true);
-        setTimeLeft(diffParts(target, now));
+      /* -------- Mode + countdown -------- */
+
+      if (nowDate < start) {
+        setTimeLeft(diffParts(nowDate, start));
+      } else if (nowDate > end) {
+        setTimeLeft(diffParts(end, nowDate));
       } else {
-        setIsPast(false);
-        setTimeLeft(diffParts(now, target));
+        setTimeLeft(diffParts(nowDate, end));
       }
+
+      /* -------- Progress -------- */
+
+      let p = 0;
+
+      if (now <= s) p = 0;
+      else if (now >= e) p = 100;
+      else p = ((now - s) / (e - s)) * 100;
+
+      setProgress(p);
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [target]);
+  }, [start, end]);
 
-  /* ---------- UI actions ---------- */
+  /* ---------- UI ---------- */
 
   const openModal = () => {
     (
@@ -105,19 +130,22 @@ const HomePage: NextPage = () => {
     )?.showModal();
   };
 
-  const handleSetDate = () => {
-    if (!inputValue) return;
+  const handleSave = () => {
+    if (!startInput || !endInput) return;
 
-    const d = new Date(inputValue);
+    const s = new Date(startInput);
+    const e = new Date(endInput);
 
-    setTarget(d);
+    setStart(s);
+    setEnd(e);
     setTitle(titleInput);
 
     router.replace(
       {
         pathname: router.pathname,
         query: {
-          date: inputValue,
+          start: startInput,
+          end: endInput,
           title: titleInput,
         },
       },
@@ -133,7 +161,8 @@ const HomePage: NextPage = () => {
   const handleShare = async () => {
     const url = new URL(window.location.href);
 
-    url.searchParams.set('date', inputValue);
+    url.searchParams.set('start', startInput);
+    url.searchParams.set('end', endInput);
     url.searchParams.set('title', titleInput);
 
     const shareUrl = url.toString();
@@ -161,9 +190,6 @@ const HomePage: NextPage = () => {
         {title}
       </h1>
 
-      {/* Past mode */}
-      {isPast && <span className="badge badge-secondary">Since</span>}
-
       {/* Countdown */}
       <div
         onClick={openModal}
@@ -180,8 +206,7 @@ const HomePage: NextPage = () => {
               <span
                 style={
                   { '--value': value, '--digits': 2 } as React.CSSProperties
-                }
-                aria-live="polite">
+                }>
                 {value}
               </span>
             </span>
@@ -190,12 +215,27 @@ const HomePage: NextPage = () => {
         ))}
       </div>
 
+      {/* Progress */}
+      <div className="flex w-full max-w-md flex-col gap-2 px-2">
+        <progress
+          className="progress progress w-full"
+          value={progress}
+          max="100"
+        />
+
+        <div className="flex justify-between text-xs opacity-70">
+          <span>{start.toDateString()}</span>
+          <span>{progress.toFixed(1)}%</span>
+          <span>{end.toDateString()}</span>
+        </div>
+      </div>
+
       {/* Modal */}
       <dialog id="countdown_modal" className="modal">
         <div className="modal-box flex flex-col gap-4">
           <h3 className="text-lg font-bold">Countdown Settings</h3>
 
-          {/* Title input */}
+          {/* Title */}
           <div className="flex flex-col gap-2">
             <label className="text-sm font-semibold">Title</label>
             <input
@@ -206,20 +246,31 @@ const HomePage: NextPage = () => {
             />
           </div>
 
-          {/* Date input */}
+          {/* Start date */}
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold">Date</label>
+            <label className="text-sm font-semibold">Start Date</label>
             <input
               type="date"
               className="input input-bordered w-full"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              value={startInput}
+              onChange={(e) => setStartInput(e.target.value)}
+            />
+          </div>
+
+          {/* End date */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold">End Date</label>
+            <input
+              type="date"
+              className="input input-bordered w-full"
+              value={endInput}
+              onChange={(e) => setEndInput(e.target.value)}
             />
           </div>
 
           {/* Actions */}
           <div className="modal-action">
-            <button className="btn btn-primary" onClick={handleSetDate}>
+            <button className="btn btn-primary" onClick={handleSave}>
               Save
             </button>
 
