@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Starter",
+  "productName": "Countdown",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "io.github.hieudoanm.countdown",
   "build": {
     "frontendDist": "../../../docs",
     "devUrl": "http://localhost:3000",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Starter",
+        "title": "Countdown",
         "width": 800,
         "height": 600,
         "resizable": true,

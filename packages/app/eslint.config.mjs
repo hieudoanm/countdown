@@ -9,8 +9,9 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     '.next/**',
-    'out/**',
     'build/**',
+    'out/**',
+    'src-tauri/**',
     'jest.config.ts',
     'jest.setup.ts',
     'next-env.d.ts',
