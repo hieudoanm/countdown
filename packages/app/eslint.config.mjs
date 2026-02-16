@@ -10,6 +10,7 @@ const eslintConfig = defineConfig([
     // Default ignores of eslint-config-next:
     '.next/**',
     'build/**',
+    'mobile/**',
     'out/**',
     'src-tauri/**',
     'jest.config.ts',
