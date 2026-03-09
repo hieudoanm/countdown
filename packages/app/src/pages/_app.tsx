@@ -19,6 +19,8 @@ const App: FC<AppProps> = ({ Component, pageProps }) => {
     <>
       <Head>
         <title>Countdown</title>
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="manifest" href="/manifest.json" />
       </Head>
       <div className={`${geistSans.className} ${geistMono.className}`}>
         <Component {...pageProps} />
