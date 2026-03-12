@@ -1,15 +1,18 @@
 self.__BUILD_MANIFEST = {
   "/": [
-    "static/chunks/bc4af52b13cc6017.js"
+    "static/chunks/19b4098ef1940f8f.js"
   ],
   "/404": [
-    "static/chunks/67d367ba3eae6d01.js"
+    "static/chunks/4ceed4fe75cda085.js"
   ],
   "/500": [
-    "static/chunks/3a21d20c50afce10.js"
+    "static/chunks/f4c220eb462174d6.js"
   ],
   "/_error": [
-    "static/chunks/dade7f4747a7822c.js"
+    "static/chunks/6994dca040a8ec3a.js"
+  ],
+  "/version": [
+    "static/chunks/14d2588e2804959a.js"
   ],
   "__rewrites": {
     "afterFiles": [],
@@ -21,6 +24,7 @@ self.__BUILD_MANIFEST = {
     "/404",
     "/500",
     "/_app",
-    "/_error"
+    "/_error",
+    "/version"
   ]
 };self.__BUILD_MANIFEST_CB && self.__BUILD_MANIFEST_CB()
