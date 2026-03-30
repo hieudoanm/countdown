@@ -39,6 +39,9 @@ Countdown is a focused project in this monorepo that delivers a practical tool w
 - 💻 [CLI](https://github.com/hieudoanm/countdown/releases)
 - 📱 [Mobile](https://github.com/hieudoanm/countdown/releases)
 - 🖥️ [Desktop](https://github.com/hieudoanm/countdown/releases)
+  - 🍎 [MacOS](https://github.com/hieudoanm/countdown/releases/tag/macos-latest)
+  - 🐧 [Ubuntu](https://github.com/hieudoanm/countdown/releases/tag/ubuntu-latest)
+  - 🪟 [Windows](https://github.com/hieudoanm/countdown/releases/tag/windows-latest)
 
 ## 🛠️ 5. Development Stack
 
